@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Trading Signals</title>
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- बेसिक रीसेट और ग्लोबल स्टाइल --- */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* गहरा नीला ग्रे */
+            color: #ffffff;
+            line-height: 1.5;
+        }
+
+        /* --- लेआउट और कंटेनर --- */
+        .container {
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        /* विभिन्न स्क्रीन साइज़ के लिए कंटेनर की चौड़ाई */
+        @media (min-width: 640px) { .container { max-width: 640px; } }
+        @media (min-width: 768px) { .container { max-width: 768px; } }
+        @media (min-width: 1024px) { .container { max-width: 1024px; } }
+        @media (min-width: 1280px) { .container { max-width: 1280px; } }
+
+        /* --- हेडर और फुटर स्टाइल --- */
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem; /* 40px */
+            padding-top: 2rem; /* 32px */
+        }
+        .main-title {
+            font-size: 2.25rem; /* 36px */
+            font-weight: 700;
+            margin-bottom: 0.5rem; /* 8px */
+            background-image: linear-gradient(to right, #3b82f6, #2dd4bf);
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        @media (min-width: 768px) {
+            .main-title {
+                font-size: 3rem; /* 48px */
+            }
+        }
+        .subtitle {
+            color: #9ca3af; /* text-gray-400 */
+        }
+        .footer {
+            text-align: center;
+            margin-top: 3rem; /* 48px */
+            color: #6b7280; /* text-gray-500 */
+            font-size: 0.875rem; /* 14px */
+        }
+        
+        /* --- सिग्नल ग्रिड --- */
+        #signals-grid {
+            display: grid;
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+            gap: 1.5rem; /* 24px */
+        }
+        @media (min-width: 768px) {
+            #signals-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (min-width: 1024px) {
+            #signals-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        /* --- सिग्नल कार्ड स्टाइल --- */
+        .signal-card {
+            background-color: #1F2937; /* गहरा ग्रे */
+            border: 1px solid #374151; /* हल्का ग्रे बॉर्डर */
+            border-radius: 0.75rem; /* 12px */
+            padding: 1.5rem; /* 24px */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .signal-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem; /* 24px */
+        }
+        .card-header img {
+            width: 2.5rem; /* 40px */
+            height: 2.5rem; /* 40px */
+            margin-right: 1rem; /* 16px */
+        }
+        .card-header h2 {
+            font-size: 1.5rem; /* 24px */
+            font-weight: 700;
+            color: #f9fafb; /* text-gray-100 */
+            margin: 0;
+        }
+        .card-body > *:not(:first-child) {
+             margin-top: 1rem; /* space-y-4 */
+        }
+        
+        /* --- टाइमफ्रेम रो (पंक्ति) स्टाइल --- */
+        .timeframe-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem; /* 16px */
+            background-color: rgba(17, 24, 39, 0.5); /* bg-gray-900/50 */
+            border-radius: 0.375rem; /* 6px */
+        }
+        .timeframe-label {
+            font-weight: 700;
+            font-size: 1.125rem; /* 18px */
+            color: #d1d5db; /* text-gray-300 */
+        }
+        .signal-details {
+            display: flex;
+            align-items: center;
+            gap: 1rem; /* 16px */
+        }
+        .signal-text {
+            font-weight: 600;
+            font-size: 1.25rem; /* 20px */
+        }
+        .signal-buy { color: #22c55e; }
+        .signal-sell { color: #ef4444; }
+        .signal-neutral { color: #eab308; }
+
+        /* --- कॉन्फिडेंस बार --- */
+        .confidence-container {
+            width: 6rem; /* 96px */
+        }
+        .confidence-bar-bg { 
+            background-color: #374151;
+            width: 100%;
+            height: 0.625rem; /* 10px */
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        .confidence-bar { 
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.5s ease-in-out;
+        }
+        .confidence-bar.bg-buy { background-color: #22c55e; }
+        .confidence-bar.bg-sell { background-color: #ef4444; }
+        .confidence-bar.bg-neutral { background-color: #eab308; }
+        .confidence-text {
+            font-size: 0.75rem; /* 12px */
+            text-align: center;
+            margin-top: 0.25rem; /* 4px */
+            color: #9ca3af; /* text-gray-400 */
+        }
+        
+        /* --- लोडर एनीमेशन --- */
+        .loader-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem; /* 8px */
+        }
+        .loader-text {
+            color: #9ca3af; /* text-gray-400 */
+        }
+        .loader {
+            border: 4px solid #374151;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- त्रुटि संदेश स्टाइल --- */
+        .error-message {
+            grid-column: 1 / -1; /* पूरे ग्रिड में फैले */
+            text-align: center;
+            background-color: rgba(127, 29, 29, 0.5); /* bg-red-900/50 */
+            padding: 1.5rem; /* 24px */
+            border-radius: 0.5rem; /* 8px */
+            border: 1px solid #b91c1c; /* border-red-700 */
+        }
+        .error-message h2 {
+            font-size: 1.5rem; /* 24px */
+            font-weight: 700;
+            color: #f87171; /* text-red-400 */
+            margin: 0;
+        }
+        .error-message p {
+            color: #fca5a5; /* text-red-300 */
+            margin-top: 0.5rem; /* 8px */
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="main-title">
+                Real-Time Crypto Signals
+            </h1>
+            <p class="subtitle">स्वचालित रूप से उत्पन्न ट्रेडिंग सिग्नल</p>
+        </header>
+
+        <!-- क्रिप्टो सिग्नल कार्ड्स -->
+        <main id="signals-grid">
+            <!-- कार्ड्स JavaScript के माध्यम से यहाँ डाले जाएँगे -->
+        </main>
+
+        <footer class="footer">
+            <p>यह कोई वित्तीय सलाह नहीं है। हमेशा अपना खुद का शोध करें।</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- कॉन्फ़िगरेशन ---
+        // महत्वपूर्ण: आपकी Supabase URL और Key यहाँ डाल दी गई है
+        const SUPABASE_URL = 'https://pytbszvcmehnrotxrmto.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5dGJzenZjbWVobnJvdHhybXRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1Mzg5NTYsImV4cCI6MjA3NDExNDk1Nn0.Bdt6_bU2ayfFi5LKBDP95Lf9umzJKdt1jfL7zid7xuA';
+
+        // --- Supabase Client ---
+        let supabaseClient; // वैरिएबल का नाम बदला गया
+        try {
+            if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL' || !SUPABASE_ANON_KEY || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+                throw new Error("Supabase URL और Anon Key को कॉन्फ़िगर करना आवश्यक है।");
+            }
+            // 'supabase' ग्लोबल ऑब्जेक्ट का उपयोग करके क्लाइंट बनाया गया
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } catch (error) {
+            console.error("Supabase Initialization Error:", error.message);
+            const grid = document.getElementById('signals-grid');
+            grid.innerHTML = `<div class="error-message">
+                                <h2>कॉन्फ़िगरेशन त्रुटि</h2>
+                                <p>कृपया <code>index.html</code> फ़ाइल में Supabase URL और Anon Key सेट करें।</p>
+                              </div>`;
+        }
+        
+
+        // --- UI एलिमेंट्स ---
+        const signalsGrid = document.getElementById('signals-grid');
+        const cryptos = [
+            { id: 'BTC', name: 'Bitcoin', logo: 'https://img.icons8.com/fluency/48/bitcoin.png' },
+            { id: 'ETH', name: 'Ethereum', logo: 'https://img.icons8.com/fluency/48/ethereum.png' },
+            { id: 'SOL', name: 'Solana', logo: 'https://img.icons8.com/fluency/48/solana.png' },
+        ];
+        const timeframes = ['5m', '15m'];
+
+        // --- स्टेट मैनेजमेंट ---
+        const signalsState = {};
+
+        // --- हेल्पर फ़ंक्शंस ---
+
+        function getSignalClass(signal) {
+            if (signal === 'BUY') return 'signal-buy';
+            if (signal === 'SELL') return 'signal-sell';
+            return 'signal-neutral';
+        }
+        
+        function getConfidenceBarClass(signal) {
+            if (signal === 'BUY') return 'bg-buy';
+            if (signal === 'SELL') return 'bg-sell';
+            return 'bg-neutral';
+        }
+
+        // UI को बनाने और अपडेट करने के लिए
+        function renderUI() {
+            signalsGrid.innerHTML = '';
+            cryptos.forEach(crypto => {
+                let timeframesHTML = '';
+                timeframes.forEach(tf => {
+                    const signalKey = `${crypto.id}-${tf}`;
+                    const signalData = signalsState[signalKey] || { signal: 'LOADING', confidence: 0 };
+                    
+                    timeframesHTML += `
+                        <div class="timeframe-row">
+                            <span class="timeframe-label">${tf.replace('m', ' मिनट')}</span>
+                            ${signalData.signal === 'LOADING' ? 
+                                `<div class="loader-container">
+                                    <div class="loader"></div>
+                                    <span class="loader-text">लोड हो रहा है...</span>
+                                </div>` :
+                                `<div class="signal-details">
+                                    <span class="signal-text ${getSignalClass(signalData.signal)}">${signalData.signal || 'N/A'}</span>
+                                    <div class="confidence-container">
+                                        <div class="confidence-bar-bg">
+                                            <div class="confidence-bar ${getConfidenceBarClass(signalData.signal)}" style="width: ${signalData.confidence || 0}%"></div>
+                                        </div>
+                                        <div class="confidence-text">${signalData.confidence || 0}%</div>
+                                    </div>
+                                </div>`
+                            }
+                        </div>
+                    `;
+                });
+
+                const cardHTML = `
+                    <div id="card-${crypto.id}" class="signal-card">
+                        <div class="card-header">
+                            <img src="${crypto.logo}" alt="${crypto.name} logo">
+                            <h2>${crypto.name} (${crypto.id})</h2>
+                        </div>
+                        <div class="card-body">
+                            ${timeframesHTML}
+                        </div>
+                    </div>
+                `;
+                signalsGrid.innerHTML += cardHTML;
+            });
+        }
+
+        // --- डेटा फ़ेचिंग और रियल-टाइम ---
+
+        async function fetchInitialSignals() {
+            if (!supabaseClient) return; // बदला गया
+            try {
+                const { data, error } = await supabaseClient.from('signals').select('*'); // बदला गया
+                if (error) throw error;
+
+                data.forEach(signal => {
+                    const key = `${signal.crypto}-${signal.timeframe}`;
+                    signalsState[key] = {
+                        signal: signal.signal,
+                        confidence: signal.confidence,
+                    };
+                });
+                renderUI();
+            } catch (error) {
+                console.error('Error fetching initial signals:', error.message);
+            }
+        }
+
+        function subscribeToChanges() {
+             if (!supabaseClient) return; // बदला गया
+            supabaseClient // बदला गया
+                .channel('public:signals')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'signals' },
+                    (payload) => {
+                        console.log('Change received!', payload);
+                        const newSignal = payload.new;
+                        const key = `${newSignal.crypto}-${newSignal.timeframe}`;
+                        
+                        signalsState[key] = {
+                           signal: newSignal.signal,
+                           confidence: newSignal.confidence,
+                        };
+
+                        updateSignalInUI(newSignal);
+                    }
+                )
+                .subscribe();
+        }
+
+        function updateSignalInUI(signal) {
+             const { crypto, timeframe, signal: signalValue, confidence } = signal;
+             const card = document.querySelector(`#card-${crypto}`);
+             if (!card) return;
+
+             const timeframeContainer = Array.from(card.querySelectorAll('.timeframe-row')).find(el => 
+                el.querySelector('.timeframe-label')?.textContent.includes(timeframe.replace('m', ' मिनट'))
+             );
+
+             if(timeframeContainer) {
+                const updatedContent = `
+                    <span class="timeframe-label">${timeframe.replace('m', ' मिनट')}</span>
+                    <div class="signal-details">
+                        <span class="signal-text ${getSignalClass(signalValue)}">${signalValue || 'N/A'}</span>
+                        <div class="confidence-container">
+                            <div class="confidence-bar-bg">
+                                <div class="confidence-bar ${getConfidenceBarClass(signalValue)}" style="width: ${confidence || 0}%"></div>
+                            </div>
+                            <div class="confidence-text">${confidence || 0}%</div>
+                        </div>
+                    </div>
+                `;
+                 timeframeContainer.innerHTML = updatedContent;
+             }
+        }
+
+
+        // --- इनिशियलाइज़ेशन ---
+        document.addEventListener('DOMContentLoaded', () => {
+            cryptos.forEach(crypto => {
+                timeframes.forEach(tf => {
+                    signalsState[`${crypto.id}-${tf}`] = { signal: 'LOADING', confidence: 0 };
+                });
+            });
+            renderUI();
+
+            if (supabaseClient) { // बदला गया
+                fetchInitialSignals();
+                subscribeToChanges();
+            }
+        });
+
+    </script>
+</body>
+</html>
+
